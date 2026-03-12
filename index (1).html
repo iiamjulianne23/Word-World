@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WordWorld — Literacy Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #6EC6F5;
+    --sun: #FFD166;
+    --grass: #78C44A;
+    --coral: #FF6B6B;
+    --purple: #A78BFA;
+    --mint: #34D399;
+    --orange: #FB923C;
+    --pink: #F472B6;
+    --cream: #FFFBF0;
+    --navy: #1E3A5F;
+    --card-bg: rgba(255,255,255,0.92);
+    --shadow: 0 8px 32px rgba(30,58,95,0.13);
+    --radius: 24px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, #6EC6F5 0%, #B8E4FF 40%, #D4F5D4 70%, #78C44A 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* FLOATING CLOUDS */
+  .cloud { position: fixed; opacity: 0.85; pointer-events: none; z-index: 0; animation: drift linear infinite; }
+  .cloud svg { filter: drop-shadow(0 4px 8px rgba(255,255,255,0.4)); }
+  @keyframes drift { from { transform: translateX(-200px); } to { transform: translateX(110vw); } }
+
+  /* STARS / SPARKLES */
+  .sparkle { position: fixed; pointer-events: none; z-index: 999; animation: sparkleAnim 0.8s forwards; }
+  @keyframes sparkleAnim {
+    0% { opacity: 1; transform: scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.4) rotate(180deg); }
+    100% { opacity: 0; transform: scale(0.5) rotate(360deg) translateY(-40px); }
+  }
+
+  /* SCREEN SYSTEM */
+  .screen { display: none; position: relative; z-index: 1; min-height: 100vh; padding: 20px; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* TOP BAR */
+  .topbar {
+    width: 100%; max-width: 700px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 50px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow);
+  }
+  .stars-display { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 800; color: var(--navy); }
+  .stars-display span { color: var(--sun); }
+  .mood-btn { background: none; border: none; font-size: 28px; cursor: pointer; transition: transform 0.2s; }
+  .mood-btn:hover { transform: scale(1.2); }
+
+  /* CARD */
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    width: 100%; max-width: 700px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* TITLE SCREEN */
+  .game-logo {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(52px, 12vw, 90px);
+    color: white;
+    text-shadow: 0 6px 0 var(--navy), 0 12px 20px rgba(30,58,95,0.3);
+    line-height: 1;
+    letter-spacing: 2px;
+    text-align: center;
+    margin: 30px 0 10px;
+    animation: bounce 2s ease-in-out infinite;
+  }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  .subtitle {
+    font-size: 22px; font-weight: 700;
+    color: var(--navy);
+    text-align: center;
+    background: var(--sun);
+    padding: 8px 24px;
+    border-radius: 50px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 0 rgba(30,58,95,0.15);
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 16px 32px;
+    border-radius: 50px;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 20px; font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+    text-decoration: none;
+  }
+  .btn:hover { transform: translateY(-3px); box-shadow: 0 9px 0 rgba(0,0,0,0.2); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
+  .btn-primary { background: var(--coral); color: white; }
+  .btn-secondary { background: var(--purple); color: white; }
+  .btn-success { background: var(--mint); color: white; }
+  .btn-sun { background: var(--sun); color: var(--navy); }
+  .btn-orange { background: var(--orange); color: white; }
+  .btn-sm { padding: 10px 22px; font-size: 16px; }
+
+  /* LEVEL SELECT */
+  .level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; width: 100%; max-width: 700px; }
+  .level-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 6px 0 rgba(30,58,95,0.12);
+    border: 3px solid transparent;
+  }
+  .level-card:hover { transform: translateY(-6px); box-shadow: 0 12px 0 rgba(30,58,95,0.12); }
+  .level-card.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
+  .level-card .level-emoji { font-size: 44px; margin-bottom: 8px; }
+  .level-card .level-name { font-size: 14px; font-weight: 800; color: var(--navy); }
+  .level-card .level-stars { font-size: 18px; letter-spacing: 2px; color: var(--sun); }
+
+  /* GAME AREA */
+  .game-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--navy);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* LETTER LEARNING */
+  .letter-display {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(80px, 20vw, 140px);
+    color: var(--coral);
+    text-shadow: 0 6px 0 rgba(255,107,107,0.3);
+    text-align: center;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.15s;
+    animation: letterPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .letter-display:hover { transform: scale(1.05) rotate(-3deg); }
+  @keyframes letterPop { from { transform: scale(0) rotate(-10deg); } to { transform: scale(1) rotate(0); } }
+
+  /* WORD CHOICES */
+  .choices-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
+  .choice-btn {
+    padding: 18px 12px;
+    border-radius: 18px;
+    border: 4px solid transparent;
+    background: var(--card-bg);
+    font-size: 26px; font-weight: 800;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 0 rgba(30,58,95,0.1);
+    text-align: center;
+    color: var(--navy);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .choice-btn .choice-emoji { font-size: 44px; }
+  .choice-btn:hover { transform: translateY(-4px); box-shadow: 0 8px 0 rgba(30,58,95,0.1); border-color: var(--purple); }
+  .choice-btn.correct { background: #D1FAE5; border-color: var(--mint); animation: correctBounce 0.5s; }
+  .choice-btn.wrong { background: #FEE2E2; border-color: var(--coral); animation: wrongShake 0.4s; }
+  @keyframes correctBounce { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  @keyframes wrongShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+  /* TRACING CANVAS */
+  #traceCanvas {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1;
+    border-radius: 20px;
+    background: #FFFBF0;
+    border: 4px dashed var(--purple);
+    cursor: crosshair;
+    display: block;
+    margin: 0 auto;
+    touch-action: none;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    width: 100%; max-width: 700px;
+    height: 16px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 50px;
+    background: linear-gradient(90deg, var(--mint), var(--sky));
+    transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  /* BREATHING EXERCISE */
+  .breath-circle {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--sky) 0%, var(--purple) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 56px;
+    margin: 20px auto;
+    box-shadow: 0 0 0 0 rgba(107,163,250,0.4);
+    cursor: pointer;
+  }
+  .breath-circle.inhale { animation: breathIn 4s ease-in-out forwards; }
+  .breath-circle.exhale { animation: breathOut 4s ease-in-out forwards; }
+  @keyframes breathIn {
+    from { transform: scale(1); box-shadow: 0 0 0 0 rgba(107,163,250,0.4); }
+    to { transform: scale(1.5); box-shadow: 0 0 0 30px rgba(107,163,250,0); }
+  }
+  @keyframes breathOut {
+    from { transform: scale(1.5); }
+    to { transform: scale(1); }
+  }
+
+  /* EMOTION CARDS */
+  .emotion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .emotion-card {
+    padding: 16px 8px;
+    border-radius: 18px;
+    background: var(--card-bg);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 0 rgba(30,58,95,0.08);
+    border: 3px solid transparent;
+  }
+  .emotion-card:hover { transform: scale(1.07); }
+  .emotion-card.selected { border-color: var(--purple); background: #EDE9FE; }
+  .emotion-card .emo-emoji { font-size: 44px; display: block; }
+  .emotion-card .emo-label { font-size: 13px; font-weight: 800; color: var(--navy); margin-top: 6px; }
+
+  /* STORY BUILDER */
+  .story-word {
+    display: inline-block;
+    background: var(--sun);
+    color: var(--navy);
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 20px;
+    margin: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 3px 0 rgba(30,58,95,0.15);
+  }
+  .story-word:hover { transform: scale(1.1); }
+
+  .story-display {
+    min-height: 80px;
+    background: #FFFBF0;
+    border-radius: 16px;
+    padding: 14px;
+    border: 3px dashed var(--orange);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  /* REWARD SCREEN */
+  .trophy { font-size: 80px; text-align: center; animation: trophyBounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes trophyBounce { from { transform: scale(0) rotate(-20deg); } to { transform: scale(1) rotate(0); } }
+
+  .star-rating { display: flex; justify-content: center; gap: 10px; font-size: 48px; }
+  .star-rating span { animation: starPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .star-rating span:nth-child(1) { animation-delay: 0.3s; }
+  .star-rating span:nth-child(2) { animation-delay: 0.5s; }
+  .star-rating span:nth-child(3) { animation-delay: 0.7s; }
+  @keyframes starPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* AVATAR */
+  .avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--sun);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+    border: 4px solid white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  /* HELPER CHARACTER */
+  .buddy {
+    position: fixed; bottom: 20px; right: 20px;
+    width: 80px; height: 80px;
+    font-size: 52px;
+    cursor: pointer;
+    z-index: 100;
+    animation: buddyFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.2));
+    display: none;
+  }
+  @keyframes buddyFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+  .buddy-bubble {
+    position: fixed; bottom: 112px; right: 20px;
+    background: white;
+    border-radius: 18px 18px 4px 18px;
+    padding: 12px 16px;
+    max-width: 220px;
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    box-shadow: var(--shadow);
+    z-index: 100;
+    display: none;
+  }
+
+  /* HEADING */
+  h2 { font-family: 'Fredoka One', cursive; font-size: 26px; color: var(--navy); margin-bottom: 12px; }
+  p { color: #4A5568; font-size: 16px; line-height: 1.6; }
+
+  /* MOOD CHECK MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(30,58,95,0.5);
+    z-index: 200; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--cream);
+    border-radius: var(--radius);
+    padding: 32px;
+    max-width: 400px; width: 90%;
+    box-shadow: 0 24px 48px rgba(30,58,95,0.2);
+    animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes modalIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* RESPONSIVE */
+  @media (max-width: 480px) {
+    .card { padding: 20px 16px; }
+    .choices-grid { gap: 10px; }
+    .choice-btn { padding: 14px 8px; }
+    .choice-btn .choice-emoji { font-size: 36px; }
+    .emotion-grid { gap: 10px; }
+  }
+
+  /* CELEBRATION RAIN */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 12px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 998;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* WRITING PROMPT */
+  .write-area {
+    width: 100%;
+    min-height: 120px;
+    border-radius: 16px;
+    border: 3px solid var(--purple);
+    padding: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--navy);
+    background: #FFFBF0;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .write-area:focus { border-color: var(--coral); }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex; gap: 8px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50px;
+    padding: 6px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(8px);
+  }
+  .nav-tab {
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: none;
+    background: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px; font-weight: 800;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-tab.active { background: white; box-shadow: 0 3px 8px rgba(30,58,95,0.12); }
+
+  /* READING PASSAGE */
+  .passage {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .passage .highlight { background: var(--sun); border-radius: 6px; padding: 0 4px; }
+  .passage .word-tap { cursor: pointer; border-bottom: 3px dotted var(--purple); transition: background 0.15s; }
+  .passage .word-tap:hover { background: #EDE9FE; border-radius: 4px; }
+
+  /* PHONICS KEYBOARD */
+  .phonics-row { display: flex; gap: 8px; justify-content: center; margin: 6px 0; flex-wrap: wrap; }
+  .phonic-key {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    border: none;
+    background: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--navy);
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(30,58,95,0.12);
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .phonic-key:hover { transform: translateY(-3px); box-shadow: 0 7px 0 rgba(30,58,95,0.12); background: var(--sun); }
+  .phonic-key:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(30,58,95,0.12); }
+
+  .word-build-display {
+    min-height: 70px;
+    background: white;
+    border-radius: 16px;
+    border: 3px dashed var(--coral);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 40px;
+    color: var(--navy);
+    letter-spacing: 8px;
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- FLOATING CLOUDS -->
+<div class="cloud" style="top:8%;animation-duration:35s;animation-delay:0s">
+  <svg width="160" height="80" viewBox="0 0 160 80"><ellipse cx="80" cy="55" rx="70" ry="30" fill="white"/><ellipse cx="55" cy="45" rx="40" ry="28" fill="white"/><ellipse cx="105" cy="42" rx="38" ry="26" fill="white"/></svg>
+</div>
+<div class="cloud" style="top:18%;animation-duration:50s;animation-delay:-20s">
+  <svg width="120" height="60" viewBox="0 0 120 60"><ellipse cx="60" cy="42" rx="52" ry="22" fill="white"/><ellipse cx="40" cy="34" rx="30" ry="22" fill="white"/><ellipse cx="82" cy="32" rx="28" ry="20" fill="white"/></svg>
+</div>
+
+<!-- BUDDY HELPER -->
+<div class="buddy" id="buddy" onclick="buddySpeak()">🐻‍❄️</div>
+<div class="buddy-bubble" id="buddyBubble"></div>
+
+<!-- MOOD CHECK MODAL -->
+<div class="modal-overlay" id="moodModal">
+  <div class="modal-box">
+    <h2 style="text-align:center;margin-bottom:6px;">How are you feeling?</h2>
+    <p style="text-align:center;margin-bottom:20px;">It's okay to feel any way! Let's check in. 💛</p>
+    <div class="emotion-grid" id="moodGrid">
+      <div class="emotion-card" onclick="selectMood('😄','Happy')"><span class="emo-emoji">😄</span><span class="emo-label">Happy</span></div>
+      <div class="emotion-card" onclick="selectMood('😐','Okay')"><span class="emo-emoji">😐</span><span class="emo-label">Okay</span></div>
+      <div class="emotion-card" onclick="selectMood('😢','Sad')"><span class="emo-emoji">😢</span><span class="emo-label">Sad</span></div>
+      <div class="emotion-card" onclick="selectMood('😤','Frustrated')"><span class="emo-emoji">😤</span><span class="emo-label">Frustrated</span></div>
+      <div class="emotion-card" onclick="selectMood('😟','Worried')"><span class="emo-emoji">😟</span><span class="emo-label">Worried</span></div>
+      <div class="emotion-card" onclick="selectMood('🤩','Excited')"><span class="emo-emoji">🤩</span><span class="emo-label">Excited</span></div>
+    </div>
+    <p id="moodAdvice" style="text-align:center;margin-top:16px;font-weight:700;color:#7C3AED;min-height:24px;"></p>
+    <div style="display:flex;justify-content:center;margin-top:20px;">
+      <button class="btn btn-primary" onclick="closeMoodModal()">Let's Play! 🎮</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SCREEN: HOME ====== -->
+<div class="screen active" id="screen-home">
+  <div class="game-logo">WordWorld</div>
+  <div class="subtitle">🌟 Learn Letters, Words & More! 🌟</div>
+
+  <div class="card" style="text-align:center;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:20px;">
+      <div class="avatar" id="homeAvatar">🐸</div>
+      <div>
+        <div style="font-size:22px;font-weight:900;color:var(--navy)" id="playerName">Explorer!</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:18px;font-weight:800;color:#F59E0B;">
+          ⭐ <span id="totalStars">0</span> stars earned
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
+      <button class="btn btn-primary" onclick="showScreen('screen-levels')">🗺️ Play!</button>
+      <button class="btn btn-secondary" onclick="showScreen('screen-breathing')">🧘 Calm Corner</button>
+      <button class="btn btn-sun" onclick="showScreen('screen-social')">🤝 Feelings Lab</button>
+    </div>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <h2>Choose Your Avatar</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px;">
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🐸')">🐸</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🐱')">🐱</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🦊')">🦊</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🐻')">🐻</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🦋')">🦋</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🐼')">🐼</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🦁')">🦁</span>
+      <span style="font-size:44px;cursor:pointer;" onclick="setAvatar('🐙')">🐙</span>
+    </div>
+    <div style="margin-top:20px;">
+      <label style="font-weight:800;color:var(--navy);font-size:16px;">What's your name?</label>
+      <input type="text" id="nameInput" placeholder="Type your name..." maxlength="20"
+        style="display:block;width:100%;margin-top:8px;padding:12px 16px;border-radius:50px;border:3px solid var(--purple);font-family:Nunito,sans-serif;font-size:18px;font-weight:700;color:var(--navy);outline:none;text-align:center;"
+        oninput="document.getElementById('playerName').textContent=this.value||'Explorer!'">
+    </div>
+  </div>
+</div>
+
+<!-- ====== SCREEN: LEVELS ====== -->
+<div class="screen" id="screen-levels">
+  <div class="topbar">
+    <button class="btn btn-sm" onclick="showScreen('screen-home')" style="padding:8px 16px;font-size:15px;">← Home</button>
+    <div class="stars-display">⭐ <span id="levelStars">0</span></div>
+    <button class="mood-btn" onclick="openMoodModal()" title="Check in">😊</button>
+  </div>
+  <h2 style="font-family:'Fredoka One',cursive;font-size:30px;color:white;text-shadow:0 3px 0 var(--navy);margin-bottom:20px;">Choose a World!</h2>
+  <div class="level-grid">
+    <div class="level-card" onclick="startLevel('letters')" style="border-color:var(--coral)">
+      <div class="level-emoji">🔤</div>
+      <div class="level-name">Letter Land</div>
+      <div class="level-stars" id="stars-letters">☆☆☆</div>
+    </div>
+    <div class="level-card" onclick="startLevel('phonics')" style="border-color:var(--purple)">
+      <div class="level-emoji">🎵</div>
+      <div class="level-name">Sound Safari</div>
+      <div class="level-stars" id="stars-phonics">☆☆☆</div>
+    </div>
+    <div class="level-card" onclick="startLevel('words')" style="border-color:var(--mint)">
+      <div class="level-emoji">📖</div>
+      <div class="level-name">Word World</div>
+      <div class="level-stars" id="stars-words">☆☆☆</div>
+    </div>
+    <div class="level-card" onclick="startLevel('reading')" style="border-color:var(--sky)">
+      <div class="level-emoji">📚</div>
+      <div class="level-name">Story Time</div>
+      <div class="level-stars" id="stars-reading">☆☆☆</div>
+    </div>
+    <div class="level-card" onclick="startLevel('writing')" style="border-color:var(--orange)">
+      <div class="level-emoji">✏️</div>
+      <div class="level-name">Write Away</div>
+      <div class="level-stars" id="stars-writing">☆☆☆</div>
+    </div>
+    <div class="level-card" onclick="startLevel('story')" style="border-color:var(--pink)">
+      <div class="level-emoji">✨</div>
+      <div class="level-name">Story Builder</div>
+      <div class="level-stars" id="stars-story">☆☆☆</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SCREEN: GAME ====== -->
+<div class="screen" id="screen-game">
+  <div class="topbar" style="max-width:700px;">
+    <button class="btn btn-sm" onclick="showScreen('screen-levels')" style="padding:8px 16px;font-size:15px;">← Back</button>
+    <div id="gameProgressWrap" style="flex:1;margin:0 12px;">
+      <div class="progress-bar-wrap" style="margin-bottom:0;">
+        <div class="progress-bar-fill" id="gameProgress" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="stars-display">❤️ <span id="livesDisplay">3</span></div>
+  </div>
+  <div id="gameContent" style="width:100%;max-width:700px;"></div>
+</div>
+
+<!-- ====== SCREEN: BREATHING ====== -->
+<div class="screen" id="screen-breathing">
+  <div class="topbar">
+    <button class="btn btn-sm" onclick="showScreen('screen-home')" style="padding:8px 16px;font-size:15px;">← Home</button>
+    <h2 style="margin:0;font-size:20px;">🧘 Calm Corner</h2>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <h2>Let's Breathe Together</h2>
+    <p style="margin-bottom:8px;">When we feel big feelings, breathing helps us calm down. You're doing great! 💛</p>
+    <div class="breath-circle" id="breathCircle">🌬️</div>
+    <p id="breathText" style="font-size:24px;font-weight:800;color:var(--navy);margin:12px 0;">Tap the circle to begin</p>
+    <p id="breathCount" style="font-size:18px;color:#7C3AED;font-weight:700;"></p>
+    <button class="btn btn-secondary" onclick="startBreathing()" style="margin-top:12px;">Start Breathing 🌬️</button>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <h2>🎵 Calm Down Toolkit</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;">
+      <button class="btn btn-sm btn-sun" onclick="playCalm('hum')">🎵 Hum</button>
+      <button class="btn btn-sm btn-success" onclick="playCalm('tap')">👋 Tap-Tap</button>
+      <button class="btn btn-sm btn-secondary" onclick="playCalm('stretch')">🙆 Stretch</button>
+      <button class="btn btn-sm btn-orange" onclick="playCalm('count')">🔢 Count to 5</button>
+    </div>
+    <p id="calmTip" style="margin-top:14px;font-size:15px;font-weight:700;color:#7C3AED;"></p>
+  </div>
+</div>
+
+<!-- ====== SCREEN: SOCIAL/FEELINGS ====== -->
+<div class="screen" id="screen-social">
+  <div class="topbar">
+    <button class="btn btn-sm" onclick="showScreen('screen-home')" style="padding:8px 16px;font-size:15px;">← Home</button>
+    <h2 style="margin:0;font-size:20px;">🤝 Feelings Lab</h2>
+    <div style="width:60px;"></div>
+  </div>
+
+  <div class="nav-tabs" style="max-width:700px;width:100%;">
+    <button class="nav-tab active" onclick="socialTab('explore')">Explore</button>
+    <button class="nav-tab" onclick="socialTab('story')">Story</button>
+    <button class="nav-tab" onclick="socialTab('kindness')">Kindness</button>
+  </div>
+
+  <div id="social-explore" class="card" style="max-width:700px;width:100%;">
+    <h2>How does this friend feel?</h2>
+    <p style="margin-bottom:16px;">Look at the picture. What emotion do you see?</p>
+    <div style="font-size:100px;text-align:center;margin:10px 0;animation:letterPop 0.4s;" id="socialScene">👧😤</div>
+    <p style="text-align:center;font-size:16px;font-weight:700;color:#64748B;margin-bottom:16px;" id="socialContext">Mia can't find her favourite toy.</p>
+    <div class="emotion-grid" id="socialChoices"></div>
+    <p id="socialFeedback" style="text-align:center;font-size:17px;font-weight:800;color:var(--navy);margin-top:16px;min-height:28px;"></p>
+    <div style="text-align:center;margin-top:12px;">
+      <button class="btn btn-sun btn-sm" onclick="nextSocialScene()">Next Scene 👉</button>
+    </div>
+  </div>
+
+  <div id="social-story" class="card" style="max-width:700px;width:100%;display:none;">
+    <h2>📖 Mini Story: The Sharing Surprise</h2>
+    <div id="storyPages"></div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+      <button class="btn btn-sm btn-secondary" onclick="storyPage(-1)">← Back</button>
+      <button class="btn btn-sm btn-primary" onclick="storyPage(1)">Next →</button>
+    </div>
+  </div>
+
+  <div id="social-kindness" class="card" style="max-width:700px;width:100%;display:none;">
+    <h2>🌟 Kindness Challenge</h2>
+    <p style="margin-bottom:16px;">Complete kind acts to earn stars! Which did you do today?</p>
+    <div id="kindnessList"></div>
+    <p id="kindnessMsg" style="font-weight:800;color:#7C3AED;margin-top:16px;font-size:16px;"></p>
+  </div>
+</div>
+
+<!-- ====== SCREEN: REWARD ====== -->
+<div class="screen" id="screen-reward">
+  <div class="card" style="text-align:center;max-width:500px;">
+    <div class="trophy" id="rewardTrophy">🏆</div>
+    <div id="rewardMsg" style="font-family:'Fredoka One',cursive;font-size:32px;color:var(--navy);margin:16px 0;"></div>
+    <div class="star-rating" id="rewardStars"></div>
+    <p id="rewardSEL" style="margin:16px 0;font-size:17px;font-weight:700;color:#7C3AED;padding:12px;background:#EDE9FE;border-radius:14px;"></p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:16px;">
+      <button class="btn btn-primary" onclick="replayLevel()">Play Again 🔄</button>
+      <button class="btn btn-secondary" onclick="showScreen('screen-levels')">More Worlds 🗺️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==============================
+// AUDIO ENGINE
+// ==============================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function playTone(freq, dur=0.15, type='sine', vol=0.3) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function playSoundSuccess() {
+  playTone(523, 0.12, 'sine');
+  setTimeout(() => playTone(659, 0.12, 'sine'), 120);
+  setTimeout(() => playTone(784, 0.25, 'sine'), 240);
+}
+
+function playSoundWrong() {
+  playTone(220, 0.3, 'sawtooth', 0.2);
+}
+
+function playSoundClick() {
+  playTone(440, 0.08, 'sine', 0.15);
+}
+
+function playSoundStar() {
+  [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.18, 'sine', 0.3), i*100));
+}
+
+function playSoundLevelUp() {
+  [392,523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.4), i*80));
+}
+
+function playNote(note) {
+  const notes = {A:440,B:494,C:523,D:587,E:659,F:698,G:784};
+  const f = notes[note.toUpperCase()] || 440;
+  playTone(f, 0.3, 'sine', 0.35);
+  setTimeout(() => playTone(f*1.5, 0.2, 'sine', 0.2), 80);
+}
+
+function speakText(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.85;
+    utt.pitch = 1.2;
+    window.speechSynthesis.speak(utt);
+  }
+}
+
+// ==============================
+// GAME STATE
+// ==============================
+let gameState = {
+  stars: parseInt(localStorage.getItem('ww_stars') || '0'),
+  avatar: localStorage.getItem('ww_avatar') || '🐸',
+  levelStars: JSON.parse(localStorage.getItem('ww_levelStars') || '{}'),
+  currentLevel: null,
+  lives: 3,
+  score: 0,
+  questionIndex: 0,
+  questions: []
+};
+
+function saveState() {
+  localStorage.setItem('ww_stars', gameState.stars);
+  localStorage.setItem('ww_avatar', gameState.avatar);
+  localStorage.setItem('ww_levelStars', JSON.stringify(gameState.levelStars));
+}
+
+function setAvatar(emo) {
+  gameState.avatar = emo;
+  document.getElementById('homeAvatar').textContent = emo;
+  saveState();
+  playSoundClick();
+  addSparkles(document.getElementById('homeAvatar'));
+}
+
+function updateStarsDisplay() {
+  document.getElementById('totalStars').textContent = gameState.stars;
+  document.getElementById('levelStars').textContent = gameState.stars;
+  Object.keys(gameState.levelStars).forEach(k => {
+    const el = document.getElementById('stars-'+k);
+    if (el) {
+      const s = gameState.levelStars[k] || 0;
+      el.textContent = '★'.repeat(s) + '☆'.repeat(3-s);
+    }
+  });
+}
+
+// ==============================
+// SCREEN NAVIGATION
+// ==============================
+function showScreen(id) {
+  playSoundClick();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const buddy = document.getElementById('buddy');
+  buddy.style.display = (id === 'screen-game' || id === 'screen-levels') ? 'block' : 'none';
+  if (id === 'screen-home') updateStarsDisplay();
+  window.scrollTo(0, 0);
+}
+
+// ==============================
+// SPARKLES & CONFETTI
+// ==============================
+function addSparkles(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    s.textContent = ['⭐','✨','💫','🌟'][Math.floor(Math.random()*4)];
+    s.style.cssText = `left:${cx + (Math.random()-0.5)*80}px;top:${cy + (Math.random()-0.5)*80}px;font-size:${16+Math.random()*14}px;animation-delay:${Math.random()*0.3}s;`;
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+}
+
+function confetti() {
+  const colors = ['#FF6B6B','#FFD166','#6EC6F5','#A78BFA','#34D399','#FB923C','#F472B6'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.cssText = `left:${Math.random()*100}vw;top:0;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;transform:rotate(${Math.random()*360}deg);`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 3000);
+    }, i * 30);
+  }
+}
+
+// ==============================
+// MOOD / SEL
+// ==============================
+const moodAdvice = {
+  '😄': "Wonderful! Your happiness lights up the room! 🌟",
+  '😐': "That's okay! Every feeling is valid. Let's have some fun! 🎈",
+  '😢': "It's okay to feel sad sometimes. Take a breath — we're here with you 💛",
+  '😤': "Feeling frustrated is normal! Try the Calm Corner first 🧘",
+  '😟': "Worries are just feelings. They visit and they leave. You're safe! 🤗",
+  '🤩': "Your excitement is contagious! Let's channel that energy! 🚀"
+};
+
+function openMoodModal() {
+  playSoundClick();
+  document.getElementById('moodModal').classList.add('open');
+}
+function closeMoodModal() {
+  playSoundClick();
+  document.getElementById('moodModal').classList.remove('open');
+}
+function selectMood(emoji, label) {
+  playSoundClick();
+  document.querySelectorAll('.emotion-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('moodAdvice').textContent = moodAdvice[emoji];
+}
+
+// ==============================
+// BREATHING EXERCISE
+// ==============================
+let breathPhase = 'idle', breathTimer = null, breathCycles = 0;
+function startBreathing() {
+  breathCycles = 0;
+  breathPhase = 'inhale';
+  doBreath();
+}
+function doBreath() {
+  const circle = document.getElementById('breathCircle');
+  const text = document.getElementById('breathText');
+  const count = document.getElementById('breathCount');
+  if (breathPhase === 'inhale') {
+    circle.className = 'breath-circle inhale';
+    circle.textContent = '🌬️';
+    text.textContent = 'Breathe IN...';
+    playTone(300, 4, 'sine', 0.1);
+    breathTimer = setTimeout(() => { breathPhase = 'hold'; doBreath(); }, 4000);
+  } else if (breathPhase === 'hold') {
+    circle.className = 'breath-circle';
+    text.textContent = 'Hold... 😊';
+    breathTimer = setTimeout(() => { breathPhase = 'exhale'; doBreath(); }, 2000);
+  } else if (breathPhase === 'exhale') {
+    circle.className = 'breath-circle exhale';
+    circle.textContent = '😌';
+    text.textContent = 'Breathe OUT...';
+    playTone(200, 4, 'sine', 0.1);
+    breathTimer = setTimeout(() => {
+      breathCycles++;
+      count.textContent = `Cycle ${breathCycles} of 3 complete!`;
+      if (breathCycles < 3) { breathPhase = 'inhale'; doBreath(); }
+      else {
+        text.textContent = '🌟 Amazing! You did it!';
+        circle.textContent = '✨';
+        circle.className = 'breath-circle';
+        playSoundStar();
+        gameState.stars += 2;
+        saveState();
+        updateStarsDisplay();
+      }
+    }, 4000);
+  }
+}
+
+const calmTips = {
+  hum: "Humming creates good vibrations in your body! Try humming your favourite song 🎵",
+  tap: "Gently tap your knees: left-right-left-right. This helps your brain feel safe 👋",
+  stretch: "Reach up high, then down low. Stretching helps big feelings move through your body 🙆",
+  count: "Count slowly: 1... 2... 3... 4... 5. Notice 5 things you can SEE right now! 🔢"
+};
+function playCalm(type) {
+  playSoundClick();
+  document.getElementById('calmTip').textContent = calmTips[type];
+  if (type === 'hum') { for (let i=0;i<5;i++) setTimeout(() => playTone(300+i*20,0.4,'sine',0.15), i*500); }
+  if (type === 'tap') { for (let i=0;i<8;i++) setTimeout(() => playTone(i%2===0?600:500,0.1,'square',0.2), i*250); }
+  if (type === 'count') { [261,294,329,349,392].forEach((f,i) => setTimeout(() => playTone(f,0.25,'sine',0.2), i*600)); }
+}
+
+// ==============================
+// SOCIAL SCENES
+// ==============================
+const socialScenes = [
+  { scene:'👧😤', context:"Mia can't find her favourite toy.", answer:'😤', emotion:'Frustrated', choices:['😄','😤','😢','🤩'] },
+  { scene:'👦😢', context:"Leo's ice cream fell on the ground.", answer:'😢', emotion:'Sad', choices:['😄','😤','😢','😐'] },
+  { scene:'👧🤩', context:"It's Zoe's birthday party today!", answer:'🤩', emotion:'Excited', choices:['😟','😐','🤩','😤'] },
+  { scene:'👦😟', context:"Tim has to do something new at school.", answer:'😟', emotion:'Worried', choices:['😄','😟','😤','😢'] },
+  { scene:'🧒😄', context:"Sam got a gold star on their drawing!", answer:'😄', emotion:'Happy', choices:['😄','😢','😤','😟'] },
+];
+let socialIndex = 0;
+function loadSocialScene() {
+  const sc = socialScenes[socialIndex % socialScenes.length];
+  document.getElementById('socialScene').textContent = sc.scene;
+  document.getElementById('socialContext').textContent = sc.context;
+  document.getElementById('socialFeedback').textContent = '';
+  const grid = document.getElementById('socialChoices');
+  grid.innerHTML = '';
+  sc.choices.forEach(ch => {
+    const d = document.createElement('div');
+    d.className = 'emotion-card';
+    d.innerHTML = `<span class="emo-emoji">${ch}</span><span class="emo-label">${emoLabel(ch)}</span>`;
+    d.onclick = () => {
+      playSoundClick();
+      grid.querySelectorAll('.emotion-card').forEach(c => c.classList.remove('selected'));
+      d.classList.add('selected');
+      if (ch === sc.answer) {
+        document.getElementById('socialFeedback').textContent = `✅ Yes! They feel ${sc.emotion}. Great empathy! 🌟`;
+        playSoundSuccess();
+        gameState.stars += 1;
+        saveState();
+        updateStarsDisplay();
+      } else {
+        document.getElementById('socialFeedback').textContent = `Try again! Look closely at their face... 🤔`;
+        playSoundWrong();
+      }
+    };
+    grid.appendChild(d);
+  });
+}
+function emoLabel(e) {
+  return {' 😄':'Happy','😤':'Frustrated','😢':'Sad','😟':'Worried','🤩':'Excited','😐':'Okay'}[e] || e;
+}
+function nextSocialScene() {
+  playSoundClick();
+  socialIndex++;
+  loadSocialScene();
+  addSparkles(document.getElementById('socialScene'));
+}
+
+// SOCIAL TABS
+function socialTab(tab) {
+  playSoundClick();
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  ['explore','story','kindness'].forEach(t => {
+    document.getElementById('social-'+t).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+// STORY PAGES
+const storyContent = [
+  { emoji:'🌳🐿️', text:"Squirrel found lots of acorns. She had more than she could eat!", question:"How do you think Squirrel felt?" },
+  { emoji:'🐰😢', text:"Rabbit was hungry and had nothing to eat. Squirrel saw Rabbit's sad face.", question:"What does Rabbit's face tell us about how she feels?" },
+  { emoji:'🤔💭', text:"Squirrel had an idea! She remembered how it felt to be hungry once.", question:"Can YOU remember a time you needed help?" },
+  { emoji:'🐿️🌰🐰', text:"Squirrel shared her acorns. Rabbit's face lit up with a big smile!", question:"How did sharing change things for both friends?" },
+  { emoji:'🤝❤️', text:"Squirrel felt warm inside. Being kind had made TWO animals happy: Rabbit AND herself!", question:"When did you last feel good from being kind?" },
+];
+let storyCurrentPage = 0;
+function renderStoryPages() {
+  const p = storyContent[storyCurrentPage];
+  document.getElementById('storyPages').innerHTML = `
+    <div style="font-size:80px;text-align:center;margin:12px 0;">${p.emoji}</div>
+    <p style="font-size:19px;font-weight:700;color:var(--navy);margin-bottom:14px;">${p.text}</p>
+    <div style="background:#EDE9FE;border-radius:14px;padding:14px;">
+      <p style="font-size:15px;font-weight:800;color:#7C3AED;">💬 Think about it: ${p.question}</p>
+    </div>
+    <p style="text-align:center;color:#94A3B8;font-size:13px;margin-top:8px;">Page ${storyCurrentPage+1} of ${storyContent.length}</p>
+  `;
+}
+function storyPage(dir) {
+  playSoundClick();
+  storyCurrentPage = Math.max(0, Math.min(storyContent.length-1, storyCurrentPage+dir));
+  renderStoryPages();
+}
+
+// KINDNESS
+const kindnessActs = [
+  "Said something kind to a friend 😊",
+  "Helped tidy up without being asked 🧹",
+  "Listened while someone was talking 👂",
+  "Shared something with someone 🤝",
+  "Said please and thank you 🙏",
+  "Cheered someone up who was sad 💛",
+  "Let someone go first ➡️",
+  "Drew or made something for someone 🎨"
+];
+let kindnessDone = new Set();
+function renderKindness() {
+  const list = document.getElementById('kindnessList');
+  list.innerHTML = '';
+  kindnessActs.forEach((act, i) => {
+    const d = document.createElement('div');
+    d.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:'+(kindnessDone.has(i)?'#D1FAE5':'white')+';border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;border:2px solid '+(kindnessDone.has(i)?'#34D399':'transparent');
+    d.innerHTML = `<span style="font-size:24px;">${kindnessDone.has(i)?'✅':'⬜'}</span><span style="font-weight:700;color:var(--navy);font-size:15px;">${act}</span>`;
+    d.onclick = () => {
+      playSoundClick();
+      if (kindnessDone.has(i)) { kindnessDone.delete(i); } else {
+        kindnessDone.add(i);
+        gameState.stars += 1;
+        saveState();
+        updateStarsDisplay();
+        playSoundSuccess();
+      }
+      renderKindness();
+      document.getElementById('kindnessMsg').textContent = kindnessDone.size > 0
+        ? `🌟 You've done ${kindnessDone.size} kind act${kindnessDone.size>1?'s':''}! You're a kindness superstar!`
+        : '';
+    };
+    list.appendChild(d);
+  });
+}
+
+// ==============================
+// GAME DATA
+// ==============================
+const letterData = [
+  {letter:'A', emoji:'🍎', word:'Apple', sound:'AY'},
+  {letter:'B', emoji:'🐝', word:'Bee', sound:'BEE'},
+  {letter:'C', emoji:'🐱', word:'Cat', sound:'SEE'},
+  {letter:'D', emoji:'🐶', word:'Dog', sound:'DEE'},
+  {letter:'E', emoji:'🥚', word:'Egg', sound:'EE'},
+  {letter:'F', emoji:'🐸', word:'Frog', sound:'EFF'},
+  {letter:'G', emoji:'🍇', word:'Grape', sound:'JEE'},
+  {letter:'H', emoji:'🏠', word:'House', sound:'AITCH'},
+  {letter:'I', emoji:'🍦', word:'Ice cream', sound:'EYE'},
+  {letter:'J', emoji:'🃏', word:'Joker', sound:'JAY'},
+  {letter:'K', emoji:'🦘', word:'Kangaroo', sound:'KAY'},
+  {letter:'L', emoji:'🦁', word:'Lion', sound:'ELL'},
+  {letter:'M', emoji:'🌙', word:'Moon', sound:'EM'},
+  {letter:'N', emoji:'🌙', word:'Night', sound:'EN'},
+  {letter:'O', emoji:'🦉', word:'Owl', sound:'OH'},
+  {letter:'P', emoji:'🍕', word:'Pizza', sound:'PEE'},
+  {letter:'Q', emoji:'👸', word:'Queen', sound:'QUE'},
+  {letter:'R', emoji:'🌈', word:'Rainbow', sound:'AR'},
+  {letter:'S', emoji:'☀️', word:'Sun', sound:'ESS'},
+  {letter:'T', emoji:'🐢', word:'Turtle', sound:'TEE'},
+  {letter:'U', emoji:'☂️', word:'Umbrella', sound:'YOU'},
+  {letter:'V', emoji:'🎻', word:'Violin', sound:'VEE'},
+  {letter:'W', emoji:'🌊', word:'Wave', sound:'DOUBLE-U'},
+  {letter:'X', emoji:'🎁', word:'Box', sound:'EX'},
+  {letter:'Y', emoji:'🪀', word:'Yo-yo', sound:'WHY'},
+  {letter:'Z', emoji:'🦓', word:'Zebra', sound:'ZEE'},
+];
+
+const phonicsWords = [
+  // Phase 1 — S, A, T, P, I, N only (true beginner SATPIN)
+  {word:'SAT', sounds:['S','A','T'], emoji:'🪑'},
+  {word:'SIT', sounds:['S','I','T'], emoji:'🧘'},
+  {word:'TIN', sounds:['T','I','N'], emoji:'🥫'},
+  {word:'PIN', sounds:['P','I','N'], emoji:'📌'},
+  {word:'PAN', sounds:['P','A','N'], emoji:'🍳'},
+  {word:'NAP', sounds:['N','A','P'], emoji:'😴'},
+  {word:'TAN', sounds:['T','A','N'], emoji:'🏖️'},
+  {word:'SIP', sounds:['S','I','P'], emoji:'🧃'},
+  {word:'ANT', sounds:['A','N','T'], emoji:'🐜'},
+  {word:'TAP', sounds:['T','A','P'], emoji:'🚿'},
+  // Phase 2 — adds C, K, E, H, R, M, D
+  {word:'CAT', sounds:['C','A','T'], emoji:'🐱'},
+  {word:'HAT', sounds:['H','A','T'], emoji:'🎩'},
+  {word:'MAT', sounds:['M','A','T'], emoji:'🟫'},
+  {word:'RAT', sounds:['R','A','T'], emoji:'🐭'},
+  {word:'HEN', sounds:['H','E','N'], emoji:'🐔'},
+  {word:'MEN', sounds:['M','E','N'], emoji:'👨‍👨'},
+  {word:'DIP', sounds:['D','I','P'], emoji:'🫙'},
+  {word:'KIT', sounds:['K','I','T'], emoji:'🧰'},
+  // Phase 3 — adds more blends
+  {word:'DOG', sounds:['D','O','G'], emoji:'🐶'},
+  {word:'SUN', sounds:['S','U','N'], emoji:'☀️'},
+];
+
+const sightWords = [
+  {word:'THE', emoji:'👆', sentence:'The cat sat.'},
+  {word:'AND', emoji:'➕', sentence:'Cats and dogs are pets.'},
+  {word:'IS', emoji:'=', sentence:'The sun is bright.'},
+  {word:'A', emoji:'1️⃣', sentence:'I have a dog.'},
+  {word:'TO', emoji:'→', sentence:'I go to school.'},
+  {word:'IN', emoji:'📦', sentence:'She is in the house.'},
+  {word:'IT', emoji:'👉', sentence:'It is a cat.'},
+  {word:'OF', emoji:'🔗', sentence:'A cup of milk.'},
+  {word:'YOU', emoji:'👤', sentence:'You are great!'},
+  {word:'THAT', emoji:'☝️', sentence:'That is my book.'},
+];
+
+const readingPassages = [
+  {
+    title: "The Tiny Seed",
+    text: "A tiny seed fell into the soft dirt. The rain came and gave it a drink. The sun smiled down and gave it warmth. Slowly, slowly, a little green shoot pushed up through the earth. The seed had become a flower!",
+    words: ['tiny','seed','dirt','rain','sun','warmth','flower'],
+    questions: [
+      {q:"What did the seed need to grow?", choices:['Rain and sun','Snow and wind','Sand and rocks','Ice and darkness'], a:0},
+      {q:"What did the seed become?", choices:['A tree','A cloud','A flower','A rock'], a:2},
+      {q:"How did the sun feel about the seed?", choices:['Angry','Friendly (it smiled!)','Bored','Scared'], a:1},
+    ]
+  },
+  {
+    title: "Max and the Muddy Day",
+    text: "Max the dog loved rainy days. He splashed in every puddle he could find. Splash! Splash! Splash! When Max came home, he was very muddy. Mum laughed and said it was bath time. Max shook his fur and water flew everywhere!",
+    words: ['splashed','puddle','muddy','laughed','shook'],
+    questions: [
+      {q:"What did Max love?", choices:['Sunny days','Rainy days','Snowy days','Windy days'], a:1},
+      {q:"What happened when Max came home?", choices:['He had dinner','He took a nap','He got a bath','He played more'], a:2},
+      {q:"What does 'muddy' mean?", choices:['Very clean','Covered in mud','Very tired','Full of water'], a:1},
+    ]
+  }
+];
+
+const storyWords = {
+  characters: ['🦊 Fox', '🐻 Bear', '🐰 Bunny', '🐬 Dolphin'],
+  settings: ['in the forest', 'at the beach', 'on a cloud', 'in a garden'],
+  actions: ['found a magic key', 'made a new friend', 'learned to fly', 'baked a cake'],
+  feelings: ['felt happy', 'was very surprised', 'felt proud', 'felt brave'],
+  endings: ['and lived happily.', 'and everything was great!', 'and learned something new.', 'and shared with everyone.']
+};
+
+const writingPrompts = [
+  { prompt: "Draw and write about your favourite animal! 🐾", starter: "My favourite animal is... because..." },
+  { prompt: "What would you do with a superpower? ⚡", starter: "If I had a superpower, I would..." },
+  { prompt: "Describe your perfect day! 🌈", starter: "My perfect day would start with..." },
+  { prompt: "Write about someone you love 💛", starter: "I love... because they..." },
+];
+
+// ==============================
+// LEVEL LOGIC
+// ==============================
+let currentLevelType = '';
+let builtWord = '';
+
+function startLevel(type) {
+  playSoundClick();
+  currentLevelType = type;
+  gameState.lives = 3;
+  gameState.score = 0;
+  gameState.questionIndex = 0;
+  builtWord = '';
+
+  showScreen('screen-game');
+  document.getElementById('livesDisplay').textContent = '❤️❤️❤️';
+  document.getElementById('gameProgress').style.width = '0%';
+
+  const total = 6;
+  gameState.questions = buildQuestions(type, total);
+  renderQuestion();
+}
+
+function buildQuestions(type, n) {
+  if (type === 'letters') {
+    return shuffle([...letterData]).slice(0, n);
+  }
+  if (type === 'phonics') {
+    return shuffle([...phonicsWords]).slice(0, n);
+  }
+  if (type === 'words') {
+    return shuffle([...sightWords]).slice(0, n);
+  }
+  if (type === 'reading') {
+    return shuffle([...readingPassages]).slice(0, 2);
+  }
+  if (type === 'writing') {
+    return shuffle([...writingPrompts]).slice(0, n);
+  }
+  if (type === 'story') {
+    return [{ type: 'story' }];
+  }
+  return [];
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function renderQuestion() {
+  const total = gameState.questions.length;
+  const idx = gameState.questionIndex;
+  if (idx >= total) { endLevel(); return; }
+
+  const pct = (idx / total) * 100;
+  document.getElementById('gameProgress').style.width = pct + '%';
+  document.getElementById('livesDisplay').textContent = '❤️'.repeat(gameState.lives) + '🖤'.repeat(3-gameState.lives);
+
+  const q = gameState.questions[idx];
+  const content = document.getElementById('gameContent');
+
+  if (currentLevelType === 'letters') renderLetterQuestion(q, content);
+  else if (currentLevelType === 'phonics') renderPhonicsQuestion(q, content);
+  else if (currentLevelType === 'words') renderWordQuestion(q, content);
+  else if (currentLevelType === 'reading') renderReadingQuestion(q, content);
+  else if (currentLevelType === 'writing') renderWritingQuestion(q, content);
+  else if (currentLevelType === 'story') renderStoryBuilder(content);
+}
+
+// LETTERS
+function renderLetterQuestion(q, content) {
+  const others = shuffle(letterData.filter(l => l.letter !== q.letter)).slice(0, 3);
+  const choices = shuffle([q, ...others]);
+
+  content.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div class="game-title">What word starts with this letter?</div>
+      <div class="letter-display" onclick="speakLetter('${q.letter}','${q.sound}')">${q.letter}</div>
+      <p style="font-size:14px;color:#7C3AED;font-weight:700;margin-bottom:4px;">Tap the letter to hear it! 🔊</p>
+      <div class="choices-grid">
+        ${choices.map(c => `
+          <button class="choice-btn" onclick="checkLetterAnswer('${c.letter}','${q.letter}',this)">
+            <span class="choice-emoji">${c.emoji}</span>
+            ${c.word}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn btn-sm" onclick="speakLetterWord('${q.letter}','${q.word}','${q.emoji}')">
+        🔊 Hear the word
+      </button>
+    </div>
+  `;
+  speakLetter(q.letter, q.sound);
+}
+
+function speakLetter(letter, sound) {
+  playNote(letter);
+  setTimeout(() => speakText(`The letter ${letter} makes the ${sound} sound`), 300);
+}
+
+function speakLetterWord(letter, word, emoji) {
+  playSoundClick();
+  speakText(`${word} starts with the letter ${letter}`);
+}
+
+function checkLetterAnswer(chosen, correct, btn) {
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    playSoundSuccess();
+    addSparkles(btn);
+    gameState.score++;
+    setTimeout(nextQuestion, 1200);
+  } else {
+    btn.classList.add('wrong');
+    playSoundWrong();
+    gameState.lives--;
+    if (gameState.lives <= 0) { setTimeout(endLevel, 1000); return; }
+    btns.forEach(b => b.disabled = false);
+    document.getElementById('livesDisplay').textContent = '❤️'.repeat(gameState.lives) + '🖤'.repeat(3-gameState.lives);
+  }
+}
+
+// PHONICS - build the word (SATPIN phase-first keyboard)
+function renderPhonicsQuestion(q, content) {
+  builtWord = '';
+  // Determine which phase letters to show based on the word's sounds
+  const satpin = ['S','A','T','P','I','N'];
+  const phase2 = ['C','K','E','H','R','M','D'];
+  const phase3 = ['G','O','U','L','F','B'];
+  const wordLetters = q.sounds;
+  const needsP2 = wordLetters.some(l => phase2.includes(l));
+  const needsP3 = wordLetters.some(l => phase3.includes(l));
+
+  let activeKeys = [...satpin];
+  if (needsP2) activeKeys = [...activeKeys, ...phase2];
+  if (needsP3) activeKeys = [...activeKeys, ...phase3];
+  // Always include any letters in the word that aren't yet covered
+  wordLetters.forEach(l => { if (!activeKeys.includes(l)) activeKeys.push(l); });
+
+  // Split into rows of up to 7
+  const rows = [];
+  for (let i = 0; i < activeKeys.length; i += 7) rows.push(activeKeys.slice(i, i+7));
+
+  const dashes = q.sounds.map(() => '_').join(' ');
+
+  content.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div class="game-title">Spell this word! ${q.emoji}</div>
+      <div style="background:#EDE9FE;border-radius:18px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+        <span style="font-size:52px;">${q.emoji}</span>
+        <div>
+          <p style="font-size:30px;font-weight:800;color:#7C3AED;margin-bottom:4px;">${q.word}</p>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            ${q.sounds.map(s => `
+              <button onclick="speakText('${s} says ${s.toLowerCase()}')" style="background:#F3F0FF;border:2px solid #A78BFA;border-radius:10px;padding:4px 12px;font-family:'Fredoka One',cursive;font-size:20px;color:#7C3AED;cursor:pointer;" title="Hear this sound">
+                ${s} 🔊
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="word-build-display" id="wordBuild">${dashes}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
+        <button onclick="speakText('${q.word}')" class="btn btn-sm btn-secondary">🔊 Hear whole word</button>
+        <button onclick="speakBlended('${q.sounds.join(',')}')" class="btn btn-sm btn-sun">🎵 Blend sounds</button>
+      </div>
+      <div id="phonicsKeyboard">
+        ${rows.map(row => `<div class="phonics-row">${row.map(l => `<button class="phonic-key" onclick="addLetter('${l}','${q.word}')">${l}</button>`).join('')}</div>`).join('')}
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:12px;">
+        <button class="btn btn-sm btn-sun" onclick="clearBuild('${q.word}')">← Clear</button>
+        <button class="btn btn-sm btn-success" onclick="checkSpelling('${q.word}')">Check ✓</button>
+      </div>
+    </div>
+  `;
+  speakText(q.word);
+}
+
+function addLetter(letter, targetWord) {
+  playSoundClick();
+  if (builtWord.length >= targetWord.length) return;
+  builtWord += letter;
+  playNote(letter);
+  document.getElementById('wordBuild').textContent = builtWord.padEnd(targetWord.length, '_').split('').join(' ');
+  setTimeout(() => speakText(letter), 200);
+}
+
+function speakBlended(soundsCSV) {
+  const sounds = soundsCSV.split(',');
+  sounds.forEach((s, i) => {
+    setTimeout(() => {
+      playNote(s);
+      speakText(s);
+    }, i * 550);
+  });
+  setTimeout(() => speakText(sounds.join('')), sounds.length * 550 + 200);
+}
+  playSoundClick();
+  builtWord = builtWord.slice(0,-1);
+  document.getElementById('wordBuild').textContent = builtWord.padEnd(targetWord.length,'_').split('').join(' ');
+}
+
+function checkSpelling(target) {
+  if (builtWord === target) {
+    playSoundSuccess();
+    document.getElementById('wordBuild').style.background = '#D1FAE5';
+    document.getElementById('wordBuild').style.borderColor = '#34D399';
+    gameState.score++;
+    addSparkles(document.getElementById('wordBuild'));
+    speakText(`Amazing! You spelled ${target}!`);
+    setTimeout(nextQuestion, 1500);
+  } else {
+    playSoundWrong();
+    document.getElementById('wordBuild').style.background = '#FEE2E2';
+    document.getElementById('wordBuild').style.borderColor = '#FF6B6B';
+    gameState.lives--;
+    if (gameState.lives <= 0) { endLevel(); return; }
+    document.getElementById('livesDisplay').textContent = '❤️'.repeat(gameState.lives) + '🖤'.repeat(3-gameState.lives);
+    builtWord = '';
+    setTimeout(() => {
+      document.getElementById('wordBuild').style.background = '';
+      document.getElementById('wordBuild').style.borderColor = '';
+      document.getElementById('wordBuild').textContent = '_ _ _';
+    }, 600);
+  }
+}
+
+// SIGHT WORDS
+function renderWordQuestion(q, content) {
+  const others = shuffle(sightWords.filter(w => w.word !== q.word)).slice(0, 3);
+  const choices = shuffle([q, ...others]);
+
+  content.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div class="game-title">Find this sight word! 👀</div>
+      <div style="background:#EDE9FE;border-radius:18px;padding:20px;margin-bottom:16px;">
+        <div style="font-family:'Fredoka One',cursive;font-size:64px;color:#7C3AED;animation:letterPop 0.4s;">${q.emoji}</div>
+        <div style="font-size:18px;font-weight:700;color:#4A5568;font-style:italic;">"${q.sentence}"</div>
+      </div>
+      <p style="font-weight:800;color:var(--navy);margin-bottom:12px;">Which word is highlighted? 🔍</p>
+      <div class="choices-grid">
+        ${choices.map(c => `
+          <button class="choice-btn" onclick="checkWordAnswer('${c.word}','${q.word}',this)" style="font-size:32px;padding:20px;">
+            ${c.word}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  speakText(`Find the word: ${q.word}. ${q.sentence}`);
+}
+
+function checkWordAnswer(chosen, correct, btn) {
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    playSoundSuccess();
+    addSparkles(btn);
+    gameState.score++;
+    speakText(`Correct! The word is ${correct}!`);
+    setTimeout(nextQuestion, 1400);
+  } else {
+    btn.classList.add('wrong');
+    playSoundWrong();
+    gameState.lives--;
+    if (gameState.lives <= 0) { setTimeout(endLevel, 1000); return; }
+    btns.forEach(b => b.disabled = false);
+    document.getElementById('livesDisplay').textContent = '❤️'.repeat(gameState.lives) + '🖤'.repeat(3-gameState.lives);
+  }
+}
+
+// READING
+let readingQIdx = 0;
+function renderReadingQuestion(passage, content) {
+  readingQIdx = 0;
+
+  // Split into sentences and wrap each in a sound-button row
+  const sentences = passage.text.match(/[^.!?]+[.!?]+/g) || [passage.text];
+  const sentenceHTML = sentences.map((sent, si) => {
+    // Highlight key words and make each word tappable
+    const words = sent.trim().split(/\s+/);
+    const wordSpans = words.map(w => {
+      const clean = w.replace(/[^a-zA-Z]/g,'');
+      const isKey = passage.words.some(kw => kw.toLowerCase() === clean.toLowerCase());
+      const safeW = w.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+      return `<span class="${isKey ? 'highlight' : ''} word-tap" onclick="speakWordTap('${clean}')" style="cursor:pointer;border-radius:4px;padding:0 2px;">${w}</span>`;
+    }).join(' ');
+    const safeSent = sent.trim().replace(/`/g,"'").replace(/"/g,"'");
+    return `
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+        <button onclick="speakText(\`${safeSent}\`)" title="Read this sentence"
+          style="flex-shrink:0;background:#EDE9FE;border:2px solid #A78BFA;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">🔊</button>
+        <span class="passage" style="margin-bottom:0;">${wordSpans}</span>
+      </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="card">
+      <div class="game-title">📖 ${passage.title}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button onclick="speakText(\`${passage.text.replace(/`/g,"'")}\`)" class="btn btn-sm btn-secondary">🔊 Read whole story</button>
+        <button onclick="window.speechSynthesis && window.speechSynthesis.cancel()" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none;padding:10px 18px;border-radius:50px;font-size:15px;font-weight:800;cursor:pointer;">⏹ Stop</button>
+      </div>
+      <p style="font-size:13px;font-weight:700;color:#7C3AED;margin-bottom:12px;background:#F5F3FF;padding:8px 12px;border-radius:10px;">
+        💡 Tap 🔊 next to each sentence, or tap any word to hear it!
+      </p>
+      <div>${sentenceHTML}</div>
+      <hr style="margin:16px 0;border:none;border-top:2px dashed #E2E8F0;">
+      <div id="readingQ"></div>
+    </div>
+  `;
+  renderReadingQ(passage);
+}
+
+function speakWordTap(word) {
+  if (!word) return;
+  playSoundClick();
+  speakText(word);
+}
+
+function renderReadingQ(passage) {
+  const q = passage.questions[readingQIdx];
+  if (!q) { gameState.score += 2; nextQuestion(); return; }
+  const div = document.getElementById('readingQ');
+  div.innerHTML = `
+    <p style="font-weight:800;color:var(--navy);font-size:17px;margin-bottom:12px;">❓ ${q.q}</p>
+    <div class="choices-grid">
+      ${q.choices.map((c,i) => `
+        <button class="choice-btn" onclick="checkReadingQ(${i},${q.a},this,'${passage.title.replace(/'/g,"\\'")}',${JSON.stringify(passage.questions).replace(/'/g,"\\'")})" style="font-size:16px;padding:14px 10px;">${c}</button>
+      `).join('')}
+    </div>
+  `;
+  speakText(q.q);
+}
+
+function checkReadingQ(chosen, correct, btn, title, qs) {
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    playSoundSuccess();
+    addSparkles(btn);
+    gameState.score++;
+    readingQIdx++;
+    const parsed = typeof qs === 'string' ? JSON.parse(qs) : qs;
+    const passage = readingPassages.find(p => p.title === title) || gameState.questions[gameState.questionIndex];
+    setTimeout(() => renderReadingQ(passage), 1200);
+  } else {
+    btn.classList.add('wrong');
+    playSoundWrong();
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// WRITING
+function renderWritingQuestion(q, content) {
+  content.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div class="game-title">✏️ Write Away!</div>
+      <div style="font-size:54px;margin:12px;">${q.prompt.split('!')[0].split('?')[0].match(/[\u{1F300}-\u{1FFFF}]/u)?.[0] || '✏️'}</div>
+      <p style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:16px;">${q.prompt}</p>
+      <textarea class="write-area" id="writeArea" placeholder="${q.starter}" rows="4"></textarea>
+      <p style="font-size:13px;color:#94A3B8;margin:8px 0;font-weight:700;">Write, draw ideas, or tell a story! 🌟</p>
+      <button class="btn btn-success" onclick="submitWriting()" style="margin-top:12px;">I'm done! ✓</button>
+    </div>
+  `;
+  speakText(q.prompt);
+}
+
+function submitWriting() {
+  const val = document.getElementById('writeArea').value.trim();
+  if (val.length < 3) {
+    speakText("Try to write a little more! You can do it!");
+    document.getElementById('writeArea').style.borderColor = 'var(--coral)';
+    return;
+  }
+  playSoundSuccess();
+  gameState.score++;
+  speakText("Wonderful writing! You're an author!");
+  addSparkles(document.getElementById('writeArea'));
+  setTimeout(nextQuestion, 1500);
+}
+
+// STORY BUILDER
+let storyBuilt = [];
+function renderStoryBuilder(content) {
+  storyBuilt = [];
+  content.innerHTML = `
+    <div class="card">
+      <div class="game-title">✨ Build a Story!</div>
+      <p style="margin-bottom:12px;font-weight:700;color:#64748B;">Tap words to build your story! 📖</p>
+      <div class="story-display" id="storyDisplay">Tap words below to start your story... ✨</div>
+      <div style="margin-bottom:12px;">
+        <p style="font-weight:800;color:var(--navy);font-size:14px;margin-bottom:8px;">👤 Characters</p>
+        <div>${storyWords.characters.map(w=>`<span class="story-word" onclick="addStoryWord('${w}')">${w}</span>`).join('')}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <p style="font-weight:800;color:var(--navy);font-size:14px;margin-bottom:8px;">🗺️ Settings</p>
+        <div>${storyWords.settings.map(w=>`<span class="story-word" onclick="addStoryWord('${w}')">${w}</span>`).join('')}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <p style="font-weight:800;color:var(--navy);font-size:14px;margin-bottom:8px;">⚡ What happened?</p>
+        <div>${storyWords.actions.map(w=>`<span class="story-word" onclick="addStoryWord('${w}')">${w}</span>`).join('')}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <p style="font-weight:800;color:var(--navy);font-size:14px;margin-bottom:8px;">💛 Feeling</p>
+        <div>${storyWords.feelings.map(w=>`<span class="story-word" onclick="addStoryWord('${w}')">${w}</span>`).join('')}</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <p style="font-weight:800;color:var(--navy);font-size:14px;margin-bottom:8px;">🏁 Ending</p>
+        <div>${storyWords.endings.map(w=>`<span class="story-word" onclick="addStoryWord('${w}')">${w}</span>`).join('')}</div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn btn-sm btn-sun" onclick="clearStory()">Clear 🗑️</button>
+        <button class="btn btn-sm btn-secondary" onclick="readStory()">Read it! 🔊</button>
+        <button class="btn btn-success btn-sm" onclick="submitStory()">Done! ✓</button>
+      </div>
+    </div>
+  `;
+}
+
+function addStoryWord(word) {
+  playSoundClick();
+  storyBuilt.push(word);
+  const display = document.getElementById('storyDisplay');
+  display.textContent = storyBuilt.join(' ') + '...';
+  playTone(400 + storyBuilt.length * 30, 0.1, 'sine', 0.2);
+}
+
+function clearStory() {
+  playSoundClick();
+  storyBuilt = [];
+  document.getElementById('storyDisplay').textContent = 'Tap words below to start your story... ✨';
+}
+
+function readStory() {
+  if (storyBuilt.length === 0) { speakText("Tap some words to build your story first!"); return; }
+  speakText(storyBuilt.join(' '));
+  playSoundClick();
+}
+
+function submitStory() {
+  if (storyBuilt.length < 3) { speakText("Add a few more words to complete your story!"); return; }
+  playSoundLevelUp();
+  speakText("Amazing story! You're a wonderful storyteller!");
+  gameState.score = 5;
+  setTimeout(endLevel, 1500);
+}
+
+function nextQuestion() {
+  gameState.questionIndex++;
+  renderQuestion();
+}
+
+// ==============================
+// END LEVEL / REWARD
+// ==============================
+function endLevel() {
+  const total = gameState.questions.length;
+  const score = gameState.score;
+  const pct = total > 0 ? score / total : 0.5;
+  const stars = pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1;
+
+  const prev = gameState.levelStars[currentLevelType] || 0;
+  if (stars > prev) {
+    gameState.levelStars[currentLevelType] = stars;
+    gameState.stars += (stars - prev) * 3;
+  }
+  saveState();
+  updateStarsDisplay();
+
+  const selMessages = [
+    "You showed great persistence — you kept trying even when it was hard! 💪",
+    "Notice how you stayed curious and kept exploring? That's a superpower! 🔍",
+    "You showed amazing self-control by focusing right to the end! 🧠",
+    "You're building new pathways in your brain every time you learn! 🌟",
+    "Mistakes help us grow. Every try makes you stronger! 🌱"
+  ];
+
+  const trophies = ['🥉','🥈','🥇'];
+  const msgs = ['Great effort! Keep practising!', 'Well done! You\'re a star!', '🎉 AMAZING! Perfect score!'];
+
+  showScreen('screen-reward');
+  document.getElementById('rewardTrophy').textContent = trophies[stars-1];
+  document.getElementById('rewardMsg').textContent = msgs[stars-1];
+  document.getElementById('rewardStars').innerHTML = Array(3).fill(0).map((_,i) => `<span>${i < stars ? '⭐' : '☆'}</span>`).join('');
+  document.getElementById('rewardSEL').textContent = selMessages[Math.floor(Math.random()*selMessages.length)];
+
+  playSoundLevelUp();
+  if (stars === 3) confetti();
+  speakText(msgs[stars-1]);
+}
+
+function replayLevel() {
+  startLevel(currentLevelType);
+}
+
+// ==============================
+// BUDDY POLAR BEAR
+// ==============================
+const buddyHints = [
+  "Take your time! There's no rush. 🐻‍❄️",
+  "Look carefully at each letter! 🔍",
+  "Tap the sound button to hear the word! 🔊",
+  "You're doing amazing! Keep going! 🌟",
+  "Break the word into small sounds! 🎵",
+  "If it's tricky, take a deep breath! 🌬️",
+  "I believe in you! Try your best! 💛",
+  "Every mistake helps you learn! 🌱",
+  "Brrrr-illiant work! You've got this! 🧊",
+  "Even polar bears practise every day! 🐾",
+];
+let buddyIdx = 0;
+
+function buddySpeak() {
+  playSoundClick();
+  const bubble = document.getElementById('buddyBubble');
+  bubble.textContent = buddyHints[buddyIdx % buddyHints.length];
+  bubble.style.display = 'block';
+  buddyIdx++;
+  setTimeout(() => { bubble.style.display = 'none'; }, 4000);
+}
+
+// ==============================
+// INIT
+// ==============================
+window.onload = () => {
+  updateStarsDisplay();
+  document.getElementById('homeAvatar').textContent = gameState.avatar;
+
+  // Load social content
+  loadSocialScene();
+  renderStoryPages();
+  renderKindness();
+
+  // Restore name
+  const savedName = localStorage.getItem('ww_name');
+  if (savedName) {
+    document.getElementById('nameInput').value = savedName;
+    document.getElementById('playerName').textContent = savedName;
+  }
+
+  document.getElementById('nameInput').addEventListener('input', function() {
+    localStorage.setItem('ww_name', this.value);
+  });
+
+  // Mood check on first load
+  setTimeout(() => openMoodModal(), 800);
+};
+</script>
+</body>
+</html>
