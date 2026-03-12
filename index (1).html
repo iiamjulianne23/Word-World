@@ -1706,5 +1706,29 @@ window.onload = () => {
   setTimeout(() => openMoodModal(), 800);
 };
 </script>
+  <script type="module" src="firebase-config.js"></script>
+```
+
+- Click **Commit changes**
+
+---
+
+## Step 5 — Deploy to Cloudflare Pages
+
+1. Go to **dash.cloudflare.com** and sign in (or create a free account)
+2. In the left sidebar click **Workers & Pages**
+3. Click **Create** → choose the **Pages** tab
+4. Click **Connect to Git**
+5. Click **Connect GitHub** → authorize Cloudflare to access your GitHub
+6. Select your `wordworld` repository → click **Begin setup**
+7. On the build settings page:
+   - **Framework preset**: None
+   - **Build command**: *(leave completely blank)*
+   - **Build output directory**: `/` *(just a forward slash)*
+8. Click **Save and Deploy**
+
+Cloudflare will take about 60 seconds to deploy. When it finishes you'll see a green **Success** banner and a live URL like:
+```
+https://wordworld.pages.dev
 </body>
 </html>
